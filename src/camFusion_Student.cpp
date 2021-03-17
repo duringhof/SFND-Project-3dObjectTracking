@@ -151,9 +151,31 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
 
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
-                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
-{
-    // ...
+                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate,
+                     double &TTC) {
+
+  auto compareLidarPoints = [](LidarPoint lp1, LidarPoint lp2) {
+    return (lp1.x < lp2.x);
+  };
+
+  double dT = 1 / frameRate;
+  std::sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), compareLidarPoints);
+  std::sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), compareLidarPoints);
+
+  // select 10% of lidar points with closest distance (at least 1)
+  int nPrev = lidarPointsPrev.size() < 10 ? 1 : lidarPointsPrev.size() / 10;
+  int nCurr = lidarPointsCurr.size() < 10 ? 1 : lidarPointsCurr.size() / 10;
+
+  // find median distance of selected lidar points
+  double d_prev = (lidarPointsPrev[std::ceil(nPrev / 2. - 1)].x +
+                   lidarPointsPrev[std::floor(nPrev / 2.)].x) /
+                  2.0;
+  double d_curr = (lidarPointsCurr[std::ceil(nCurr / 2. - 1)].x +
+                   lidarPointsCurr[std::floor(nCurr / 2.)].x) /
+                  2.0;
+
+  TTC = (d_curr * dT) / (d_prev - d_curr);
+  std::cout << "TTC = " << TTC << std::endl;
 }
 
 
@@ -215,6 +237,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches,
 
         if (countMatches[i][j] > max_count) {
           
+          max_count = countMatches[i][j];
           max_idc = j;
         }
       }

@@ -78,6 +78,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches,
 
         if (countMatches[i][j] > max_count) {
           
+          max_count = countMatches[i][j];
           max_idc = j;
         }
       }
@@ -91,6 +92,37 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches,
 
 #### Task FP.2 Compute Lidar-based TTC
 > Compute the time-to-collision in second for all matched 3D objects using only Lidar measurements from the matched bounding boxes between current and previous frame.
+
+```c++
+void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
+                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate,
+                     double &TTC) {
+
+  auto compareLidarPoints = [](LidarPoint lp1, LidarPoint lp2) {
+    return (lp1.x < lp2.x);
+  };
+
+  double dT = 1 / frameRate;
+  std::sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), compareLidarPoints);
+  std::sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), compareLidarPoints);
+
+  // select 10% of lidar points with closest distance (at least 1)
+  int nPrev = lidarPointsPrev.size() < 10 ? 1 : lidarPointsPrev.size() / 10;
+  int nCurr = lidarPointsCurr.size() < 10 ? 1 : lidarPointsCurr.size() / 10;
+
+  // find median distance of selected lidar points
+  double d_prev = (lidarPointsPrev[std::ceil(nPrev / 2. - 1)].x +
+                   lidarPointsPrev[std::floor(nPrev / 2.)].x) /
+                  2.0;
+  double d_curr = (lidarPointsCurr[std::ceil(nCurr / 2. - 1)].x +
+                   lidarPointsCurr[std::floor(nCurr / 2.)].x) /
+                  2.0;
+
+  TTC = (d_curr * dT) / (d_prev - d_curr);
+}
+```
+#### Task FP.3 Associate Keypoint Correspondences with Bounding Boxes
+> Prepare the TTC computation based on camera measurements by associating keypoint correspondences to the bounding boxes which enclose them. All matches which satisfy this condition must be added to a vector in the respective bounding box.
 
 ```c++
 
