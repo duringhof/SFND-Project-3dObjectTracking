@@ -180,10 +180,55 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox,
 
 
 // Compute time-to-collision (TTC) based on keypoint correspondences in successive images
-void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
-                      std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg)
-{
-    // ...
+void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
+                      std::vector<cv::KeyPoint> &kptsCurr,
+                      std::vector<cv::DMatch> kptMatches, double frameRate,
+                      double &TTC, cv::Mat *visImg) {
+
+  vector<double> distRatios;
+
+  for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1) {
+
+    // get current keypoint and its matched partner in the prev. frame
+    cv::KeyPoint kpOuterCurr = kptsCurr.at(it1->trainIdx);
+    cv::KeyPoint kpOuterPrev = kptsPrev.at(it1->queryIdx);
+
+    for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2) {
+
+      double minDist = 100.0; // min. required distance
+
+      // get next keypoint and its matched partner in the prev. frame
+      cv::KeyPoint kpInnerCurr = kptsCurr.at(it2->trainIdx);
+      cv::KeyPoint kpInnerPrev = kptsPrev.at(it2->queryIdx);
+
+      // compute distances and distance ratios
+      double distCurr = cv::norm(kpOuterCurr.pt - kpInnerCurr.pt);
+      double distPrev = cv::norm(kpOuterPrev.pt - kpInnerPrev.pt);
+
+      if (distPrev > std::numeric_limits<double>::epsilon() &&
+          distCurr >= minDist) {
+
+        double distRatio = distCurr / distPrev;
+        distRatios.push_back(distRatio);
+      }
+    }
+  }
+
+  // only continue if list of distance ratios is not empty
+  if (distRatios.size() == 0) {
+
+    TTC = NAN;
+    return;
+  }
+
+  // compute camera-based TTC from distance ratios
+  double dT = 1 / frameRate;
+  std::sort(distRatios.begin(), distRatios.end());
+  double medianDistRatio = (distRatios[std::ceil(distRatios.size() / 2. - 1)] +
+                            distRatios[std::floor(distRatios.size() / 2.)]) /
+                           2.0;
+  TTC = -dT / (1 - medianDistRatio);
+  std::cout << "TTC_cam = " << TTC << std::endl;
 }
 
 
@@ -212,7 +257,7 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                   2.0;
 
   TTC = (d_curr * dT) / (d_prev - d_curr);
-  std::cout << "TTC = " << TTC << std::endl;
+  std::cout << "TTC_lid = " << TTC << std::endl;
 }
 
 

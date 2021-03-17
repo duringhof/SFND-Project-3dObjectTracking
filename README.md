@@ -173,6 +173,70 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox,
 > Compute the time-to-collision in second for all matched 3D objects using only keypoint correspondences from the matched bounding boxes between current and previous frame.
 
 ```c++
+void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
+                      std::vector<cv::KeyPoint> &kptsCurr,
+                      std::vector<cv::DMatch> kptMatches, double frameRate,
+                      double &TTC, cv::Mat *visImg) {
+
+  vector<double> distRatios;
+
+  for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1) {
+
+    // get current keypoint and its matched partner in the prev. frame
+    cv::KeyPoint kpOuterCurr = kptsCurr.at(it1->trainIdx);
+    cv::KeyPoint kpOuterPrev = kptsPrev.at(it1->queryIdx);
+
+    for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2) {
+
+      double minDist = 100.0; // min. required distance
+
+      // get next keypoint and its matched partner in the prev. frame
+      cv::KeyPoint kpInnerCurr = kptsCurr.at(it2->trainIdx);
+      cv::KeyPoint kpInnerPrev = kptsPrev.at(it2->queryIdx);
+
+      // compute distances and distance ratios
+      double distCurr = cv::norm(kpOuterCurr.pt - kpInnerCurr.pt);
+      double distPrev = cv::norm(kpOuterPrev.pt - kpInnerPrev.pt);
+
+      if (distPrev > std::numeric_limits<double>::epsilon() &&
+          distCurr >= minDist) {
+
+        double distRatio = distCurr / distPrev;
+        distRatios.push_back(distRatio);
+      }
+    }
+  }
+
+  // only continue if list of distance ratios is not empty
+  if (distRatios.size() == 0) {
+
+    TTC = NAN;
+    return;
+  }
+
+  // compute camera-based TTC from distance ratios
+  double dT = 1 / frameRate;
+  std::sort(distRatios.begin(), distRatios.end());
+  double medianDistRatio = (distRatios[std::ceil(distRatios.size() / 2. - 1)] +
+                            distRatios[std::floor(distRatios.size() / 2.)]) /
+                           2.0;
+  TTC = -dT / (1 - medianDistRatio);
+}
+```
+
+---
+#### Task FP.5 Performance Evaluation 1
+> Find examples where the TTC estimate of the Lidar sensor does not seem plausible. Describe your observations and provide a sound argumentation why you think this happened.
+
+```
+
+```
+
+---
+#### Task FP.6 Performance Evaluation 2
+> Run several detector / descriptor combinations and look at the differences in TTC estimation. Find out which methods perform best and also include several examples where camera-based TTC estimation is way off. As with Lidar, describe your observations again and also look into potential reasons.
+
+```
 
 ```
 
