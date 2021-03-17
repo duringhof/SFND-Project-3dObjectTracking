@@ -125,6 +125,54 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 > Prepare the TTC computation based on camera measurements by associating keypoint correspondences to the bounding boxes which enclose them. All matches which satisfy this condition must be added to a vector in the respective bounding box.
 
 ```c++
+void clusterKptMatchesWithROI(BoundingBox &boundingBox,
+                              std::vector<cv::KeyPoint> &kptsPrev,
+                              std::vector<cv::KeyPoint> &kptsCurr,
+                              std::vector<cv::DMatch> &kptMatches) {
+
+  // find matches belonging to boundingbox and calculate euclidian distances
+  vector<double> euclDistances;
+  for (cv::DMatch match : kptMatches) {
+
+    if (boundingBox.roi.contains(kptsCurr[match.trainIdx].pt)) {
+
+      boundingBox.keypoints.push_back(kptsCurr[match.trainIdx]);
+      boundingBox.kptMatches.push_back(match);
+      double euclDist =
+          cv::norm(kptsPrev[match.queryIdx].pt - kptsCurr[match.trainIdx].pt);
+      euclDistances.push_back(euclDist);
+    }
+  }
+
+  // calculate median euclidian distance
+  int n = euclDistances.size();
+  std::sort(euclDistances.begin(), euclDistances.end());
+  double medianEuclDist = (euclDistances[std::ceil(n / 2. - 1)] +
+                           euclDistances[std::floor(n / 2.)]) /
+                          2.0;
+
+  // filter out matches with sufficiently small deviation to the median euclidian distance
+  vector<cv::KeyPoint> kpts;
+  vector<cv::DMatch> matches;
+  for (cv::DMatch match : boundingBox.kptMatches) {
+
+    double euclDist =
+        cv::norm(kptsPrev[match.queryIdx].pt - kptsCurr[match.trainIdx].pt);
+    if (abs(euclDist - medianEuclDist) <= 25) {
+      matches.push_back(match);
+      kpts.push_back(kptsCurr[match.trainIdx]);
+    }
+  }
+  boundingBox.keypoints = kpts;
+  boundingBox.kptMatches = matches;  
+}
+```
+
+---
+#### Task FP.4 Compute Camera-based TTC
+> Compute the time-to-collision in second for all matched 3D objects using only keypoint correspondences from the matched bounding boxes between current and previous frame.
+
+```c++
 
 ```
 
