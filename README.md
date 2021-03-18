@@ -238,9 +238,10 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
 #### Task FP.6 Performance Evaluation 2
 > Run several detector / descriptor combinations and look at the differences in TTC estimation. Find out which methods perform best and also include several examples where camera-based TTC estimation is way off. As with Lidar, describe your observations again and also look into potential reasons.
 
-```
 Below, a complete table is shown with calculated TTC's for all destector/descriptor combinations. Also, a graph is shown with only the most plausible results, showing that particularly the Shitomasi detector has performed well on the data.
-```
+
+As can be seen in the table, several combinations do not perform well at all, resulting in extreme outliers, like over 500 for an ORB detector with BRISK descriptor extraction.
+
 ![TTCs for best performing combinations](images/results.png)
 
 |Det/des combination|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|
