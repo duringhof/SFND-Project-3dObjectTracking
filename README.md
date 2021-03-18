@@ -231,16 +231,18 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
 | Picture | Explanation |
 | ---- | ---- |
 | ![Lidar High Value](images/1.png) |  The picture shows which lidar points are consdered for distance measurement, red points are from prev frame and green from the current. In this example the lidar points considered switched from the rear bumper to the hatch|
-![Lidar Low Value](images/2.png) |  Similar situation as previous, the considered lidar measurements have changed "focus" on the vehicle considerably|
-![Lidar Very High Value](images/3.png) |  The measurements at the license plate appear to be more noisy|
+| ![Lidar Low Value](images/2.png) |  Similar situation as previous, the considered lidar measurements have changed "focus" on the vehicle considerably|
+| ![Lidar Very High Value](images/3.png) |  The measurements at the license plate appear to be more noisy|
 
 ---
 #### Task FP.6 Performance Evaluation 2
 > Run several detector / descriptor combinations and look at the differences in TTC estimation. Find out which methods perform best and also include several examples where camera-based TTC estimation is way off. As with Lidar, describe your observations again and also look into potential reasons.
 
 ```
-
+Below, a complete table is shown with calculated TTC's for all destector/descriptor combinations. Also, a graph is shown with only the most plausible results, showing that particularly the Shitomasi detector has performed well on the data.
 ```
+![TTCs for best performing combinations](images/results.png)
+
 |Det/des combination|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|
 |---------------|-------|-------|--------|-------|-------|-------|-------|-------|-------|--------|-------|-------|-------|-------|--------|-------|-------|-------|
 |SHITOMASI-BRISK|12.8228|12.6968|14.4793 |12.7779|12.2694|14.0207|12.7924|13.2285|11.7376|12.0439 |10.9042|11.8481|13.0323|11.8438|9.94433 |10.6857|11.3134|10.6426|
