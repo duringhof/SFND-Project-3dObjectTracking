@@ -228,9 +228,11 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
 #### Task FP.5 Performance Evaluation 1
 > Find examples where the TTC estimate of the Lidar sensor does not seem plausible. Describe your observations and provide a sound argumentation why you think this happened.
 
-```
-
-```
+| Picture | Explanation |
+| ---- | ---- |
+| ![Lidar High Value](images/1.png) |  The picture shows which lidar points are consdered for distance measurement, red points are from prev frame and green from the current. In this example the lidar points considered switched from the rear bumper to the hatch|
+![Lidar Low Value](images/2.png) |  Similar situation as previous, the considered lidar measurements have changed "focus" on the vehicle considerably|
+![Lidar Very High Value](images/3.png) |  The measurements at the license plate appear to be more noisy|
 
 ---
 #### Task FP.6 Performance Evaluation 2
