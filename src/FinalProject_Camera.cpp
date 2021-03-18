@@ -142,7 +142,6 @@ int main(int argc, const char *argv[]) {
     string imgFullFilename =
         imgBasePath + imgPrefix + imgNumber.str() + imgFileType;
     
-
     // load image from file 
     cv::Mat img = cv::imread(imgFullFilename);
 
@@ -150,6 +149,11 @@ int main(int argc, const char *argv[]) {
     DataFrame frame;
     frame.cameraImg = img;
     dataBuffer.push_back(frame);
+
+    // limit data frame buffer size by removing oldest frame
+        if (dataBuffer.size() > dataBufferSize) {
+          dataBuffer.erase(dataBuffer.begin());
+        }
 
     cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
 
@@ -181,7 +185,6 @@ int main(int argc, const char *argv[]) {
 
     cout << "#3 : CROP LIDAR POINTS done" << endl;
 
-
     /* CLUSTER LIDAR POINT CLOUD */
 
     // associate Lidar points with camera-based ROI
@@ -195,11 +198,11 @@ int main(int argc, const char *argv[]) {
     
 
     // Visualize 3D objects
-    bVis = false;
+    bVis = true;
     if (bVis) {
 
       show3DObjects((dataBuffer.end() - 1)->boundingBoxes, cv::Size(4.0, 20.0),
-                    cv::Size(2000, 2000), true);
+                    cv::Size(1000, 1000), true);
     }
     bVis = false;
 
@@ -217,12 +220,12 @@ int main(int argc, const char *argv[]) {
     string detectorType = "SHITOMASI";
 
     if (detectorType.compare("SHITOMASI") == 0) {
-
-      detKeypointsShiTomasi(keypoints, imgGray, false);
-    } else {
-
-      //...
-    }
+          detKeypointsShiTomasi(keypoints, imgGray, false);
+        } else if (detectorType.compare("HARRIS") == 0) {
+          detKeypointsHarris(keypoints, imgGray, false);
+        } else {
+          detKeypointsModern(keypoints, imgGray, detectorType, false);
+        }
 
     // optional : limit number of keypoints (helpful for debugging and learning)
     bool bLimitKpts = false;
@@ -267,8 +270,8 @@ int main(int argc, const char *argv[]) {
 
       vector<cv::DMatch> matches;
       string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
-      string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
-      string selectorType = "SEL_NN";       // SEL_NN, SEL_KNN
+      string descriptorType = "DES_HOG"; // DES_BINARY, DES_HOG
+      string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
       matchDescriptors((dataBuffer.end() - 2)->keypoints,
                        (dataBuffer.end() - 1)->keypoints,
@@ -329,9 +332,11 @@ int main(int argc, const char *argv[]) {
                 0) { // only compute TTC if we have Lidar points
 
           double ttcLidar;
-          computeTTCLidar(prevBB->lidarPoints, currBB->lidarPoints,
-                          sensorFrameRate, ttcLidar);
-          
+          std::vector<std::vector<LidarPoint>> lidarPointsForTTC;
+          lidarPointsForTTC =
+              computeTTCLidar(prevBB->lidarPoints, currBB->lidarPoints,
+                              sensorFrameRate, ttcLidar);
+                    
           double ttcCamera;
           clusterKptMatchesWithROI(*currBB, (dataBuffer.end() - 2)->keypoints,
                                    (dataBuffer.end() - 1)->keypoints,
@@ -340,12 +345,16 @@ int main(int argc, const char *argv[]) {
                            (dataBuffer.end() - 1)->keypoints,
                            currBB->kptMatches, sensorFrameRate, ttcCamera);
 
-          bVis = false;
+          bVis = true;
           if (bVis) {
 
             cv::Mat visImg = (dataBuffer.end() - 1)->cameraImg.clone();
-            showLidarImgOverlay(visImg, currBB->lidarPoints, P_rect_00,
-                                R_rect_00, RT, &visImg);
+            //showLidarImgOverlay(visImg, currBB->lidarPoints, P_rect_00,
+            //                   R_rect_00, RT, &visImg);
+            showLidarImgOverlay(visImg, lidarPointsForTTC[0], P_rect_00,
+                                R_rect_00, RT, &visImg, true);
+            showLidarImgOverlay(visImg, lidarPointsForTTC[1], P_rect_00, R_rect_00,
+                                RT, &visImg, false);
             cv::rectangle(visImg, cv::Point(currBB->roi.x, currBB->roi.y),
                           cv::Point(currBB->roi.x + currBB->roi.width,
                                     currBB->roi.y + currBB->roi.height),

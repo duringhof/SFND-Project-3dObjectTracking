@@ -232,7 +232,7 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev,
 }
 
 
-void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
+std::vector<std::vector<LidarPoint>> computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate,
                      double &TTC) {
 
@@ -245,8 +245,20 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
   std::sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), compareLidarPoints);
 
   // select 10% of lidar points with closest distance (at least 1)
-  int nPrev = lidarPointsPrev.size() < 10 ? 1 : lidarPointsPrev.size() / 10;
-  int nCurr = lidarPointsCurr.size() < 10 ? 1 : lidarPointsCurr.size() / 10;
+  int nPrev = lidarPointsPrev.size() < 20 ? 1 : lidarPointsPrev.size() / 20;
+  int nCurr = lidarPointsCurr.size() < 20 ? 1 : lidarPointsCurr.size() / 20;
+
+  std::vector<LidarPoint> lidarPointsForTTCprev;
+  std::vector<LidarPoint> lidarPointsForTTCcurr;
+
+  for (int i = 0; i < nPrev; i++) {
+    lidarPointsForTTCprev.push_back(lidarPointsPrev[i]);
+  }
+  for (int i = 0; i < nCurr; i++) {
+    lidarPointsForTTCcurr.push_back(lidarPointsCurr[i]);
+  }
+
+  std::vector<std::vector<LidarPoint>> lidarPointsForTTC = { lidarPointsForTTCprev, lidarPointsForTTCcurr};
 
   // find median distance of selected lidar points
   double d_prev = (lidarPointsPrev[std::ceil(nPrev / 2. - 1)].x +
@@ -257,7 +269,11 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                   2.0;
 
   TTC = (d_curr * dT) / (d_prev - d_curr);
+  std::cout << "d_prev = " << d_prev << std::endl;
+  std::cout << "d_curr = " << d_curr << std::endl;
   std::cout << "TTC_lid = " << TTC << std::endl;
+
+  return lidarPointsForTTC;
 }
 
 
